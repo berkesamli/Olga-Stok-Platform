@@ -142,7 +142,6 @@ export const QUERIES = {
             stockCount
             stockLocationId
           }
-          variantValueIds
           weight
           isActive
         }
