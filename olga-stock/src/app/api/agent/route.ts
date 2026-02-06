@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ikas'tan güncel veriyi çek
-    let products;
+    let products: ProductStock[];
     try {
       const ikasProducts = await fetchAllProducts();
       products = transformIkasProducts(ikasProducts);
