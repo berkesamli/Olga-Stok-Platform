@@ -185,7 +185,7 @@ export function transformIkasProducts(ikasProducts: any[]): ProductStock[] {
       name: p.name || "İsimsiz Ürün",
       sku: variant?.sku || "-",
       category: p.categories?.[0]?.name || p.brand?.name || "Genel",
-      currentStock: p.totalStock ?? variant?.stockCount ?? 0,
+      currentStock: p.totalStock ?? variant?.stocks?.reduce((sum: number, s: any) => sum + (s.stockCount || 0), 0) ?? 0,
       minStock: 10, // ikas'ta min stok bilgisi yoksa varsayılan
       unit: p.baseUnit?.type === "METER" ? "metre" : "adet",
       price: price?.sellPrice ?? 0,
