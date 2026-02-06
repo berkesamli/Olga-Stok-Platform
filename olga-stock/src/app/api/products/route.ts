@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchAllProducts, fetchCategories } from "@/lib/ikas";
+import { fetchAllProducts, fetchCategories, fetchStockLocations } from "@/lib/ikas";
 import { transformIkasProducts } from "@/lib/analysis";
 
 // GET /api/products - Tüm ürünleri ikas'tan çek
 export async function GET(request: NextRequest) {
   try {
-    const [ikasProducts, categories] = await Promise.all([
+    const [ikasProducts, categories, stockLocations] = await Promise.all([
       fetchAllProducts(),
       fetchCategories(),
+      fetchStockLocations(),
     ]);
 
-    const products = transformIkasProducts(ikasProducts);
+    const products = transformIkasProducts(ikasProducts, stockLocations);
 
     return NextResponse.json({
       success: true,
