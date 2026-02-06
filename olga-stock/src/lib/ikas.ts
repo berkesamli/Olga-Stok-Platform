@@ -99,9 +99,9 @@ export async function ikasGraphQL<T = any>(
 
 // ─── Product Queries ─────────────────────────────────────────────────
 export const QUERIES = {
-  // Tüm ürünleri listele (stok bilgisi dahil)
-  LIST_PRODUCTS: `{
-    listProduct {
+  // Tüm ürünleri listele (stok bilgisi dahil) - pagination destekli
+  LIST_PRODUCTS: `query($pagination: PaginationInput) {
+    listProduct(pagination: $pagination) {
       data {
         id
         name
@@ -151,6 +151,7 @@ export const QUERIES = {
         createdAt
         weight
       }
+      hasNext
     }
   }`,
 
@@ -165,7 +166,10 @@ export const QUERIES = {
         variants {
           id
           sku
-          stockCount
+          stocks {
+            stockCount
+            stockLocationId
+          }
           prices {
             sellPrice
             buyPrice
@@ -199,9 +203,9 @@ export const QUERIES = {
     }
   }`,
 
-  // Siparişleri listele (tüketim analizi için)
-  LIST_ORDERS: `{
-    listOrder {
+  // Siparişleri listele (tüketim analizi için) - pagination destekli
+  LIST_ORDERS: `query($pagination: PaginationInput) {
+    listOrder(pagination: $pagination) {
       data {
         id
         orderNumber
@@ -214,6 +218,7 @@ export const QUERIES = {
           finalPrice
         }
       }
+      hasNext
     }
   }`,
 
@@ -256,8 +261,23 @@ export const MUTATIONS = {
 
 // ─── Helper Functions ────────────────────────────────────────────────
 export async function fetchAllProducts() {
-  const data = await ikasGraphQL(QUERIES.LIST_PRODUCTS);
-  return data.listProduct?.data || [];
+  const allProducts: any[] = [];
+  let page = 1;
+  const limit = 200; // ikas max limit
+
+  while (true) {
+    const data = await ikasGraphQL(QUERIES.LIST_PRODUCTS, {
+      pagination: { page, limit },
+    });
+
+    const products = data.listProduct?.data || [];
+    allProducts.push(...products);
+
+    if (!data.listProduct?.hasNext || products.length === 0) break;
+    page++;
+  }
+
+  return allProducts;
 }
 
 export async function fetchStockLocations() {
@@ -270,8 +290,23 @@ export async function fetchStockLocations() {
 }
 
 export async function fetchOrders() {
-  const data = await ikasGraphQL(QUERIES.LIST_ORDERS);
-  return data.listOrder?.data || [];
+  const allOrders: any[] = [];
+  let page = 1;
+  const limit = 200;
+
+  while (true) {
+    const data = await ikasGraphQL(QUERIES.LIST_ORDERS, {
+      pagination: { page, limit },
+    });
+
+    const orders = data.listOrder?.data || [];
+    allOrders.push(...orders);
+
+    if (!data.listOrder?.hasNext || orders.length === 0) break;
+    page++;
+  }
+
+  return allOrders;
 }
 
 export async function fetchCategories() {
