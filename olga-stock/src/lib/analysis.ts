@@ -175,26 +175,81 @@ export function generateOrderSuggestion(products: ProductStock[]): {
 }
 
 // ─── Product Data Transformer (ikas -> internal format) ──────────────
-export function transformIkasProducts(ikasProducts: any[]): ProductStock[] {
-  return ikasProducts.map((p) => {
+export function transformIkasProducts(
+  ikasProducts: any[],
+  stockLocations?: any[]
+): ProductStock[] {
+  const locationMap = new Map<string, string>();
+  if (stockLocations) {
+    for (const loc of stockLocations) {
+      locationMap.set(loc.id, loc.name);
+    }
+  }
+
+  const results: ProductStock[] = [];
+
+  for (const p of ikasProducts) {
     const variant = p.variants?.[0];
     const price = variant?.prices?.[0];
+    const baseName = p.name || "İsimsiz Ürün";
+    const baseSku = variant?.sku || "-";
+    const category = p.categories?.[0]?.name || p.brand?.name || "Genel";
+    const unit = p.baseUnit?.type === "METER" ? "metre" : "adet";
+    const sellPrice = price?.sellPrice ?? 0;
+    const lastOrderDate = p.createdAt
+      ? new Date(p.createdAt).toISOString().split("T")[0]
+      : "-";
 
-    return {
-      id: p.id,
-      name: p.name || "İsimsiz Ürün",
-      sku: variant?.sku || "-",
-      category: p.categories?.[0]?.name || p.brand?.name || "Genel",
-      currentStock: p.totalStock ?? variant?.stocks?.reduce((sum: number, s: any) => sum + (s.stockCount || 0), 0) ?? 0,
-      minStock: 10, // ikas'ta min stok bilgisi yoksa varsayılan
-      unit: p.baseUnit?.type === "METER" ? "metre" : "adet",
-      price: price?.sellPrice ?? 0,
-      location: "Ankara", // Default, stock location API'den alınacak
-      dailyUsage: 0, // Sipariş verilerinden hesaplanacak
-      trend: "stable" as const,
-      lastOrderDate: new Date(p.createdAt).toISOString().split("T")[0],
-    };
-  });
+    // Tüm variant'lardan lokasyon bazlı stok topla
+    const stockByLocation = new Map<string, number>();
+    for (const v of p.variants || []) {
+      for (const s of v.stocks || []) {
+        if (s.stockLocationId && s.stockCount > 0) {
+          const current = stockByLocation.get(s.stockLocationId) || 0;
+          stockByLocation.set(s.stockLocationId, current + s.stockCount);
+        }
+      }
+    }
+
+    if (stockByLocation.size > 0) {
+      // Lokasyon bazlı ayrı satırlar oluştur
+      stockByLocation.forEach((stock, locId) => {
+        const locName = locationMap.get(locId) || locId;
+        results.push({
+          id: `${p.id}_${locId}`,
+          name: baseName,
+          sku: baseSku,
+          category,
+          currentStock: stock,
+          minStock: 10,
+          unit,
+          price: sellPrice,
+          location: locName,
+          dailyUsage: 0,
+          trend: "stable" as const,
+          lastOrderDate,
+        });
+      });
+    } else {
+      // Stok lokasyonu yoksa toplam stok ile tek satır
+      results.push({
+        id: p.id,
+        name: baseName,
+        sku: baseSku,
+        category,
+        currentStock: p.totalStock ?? 0,
+        minStock: 10,
+        unit,
+        price: sellPrice,
+        location: "-",
+        dailyUsage: 0,
+        trend: "stable" as const,
+        lastOrderDate,
+      });
+    }
+  }
+
+  return results;
 }
 
 // ─── Format Helpers ──────────────────────────────────────────────────

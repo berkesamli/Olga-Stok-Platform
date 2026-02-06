@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchAllProducts, fetchOrders } from "@/lib/ikas";
+import { fetchAllProducts, fetchOrders, fetchStockLocations } from "@/lib/ikas";
 import {
   transformIkasProducts,
   generateAlerts,
@@ -27,8 +27,11 @@ export async function POST(request: NextRequest) {
     // ikas'tan güncel veriyi çek
     let products: ProductStock[];
     try {
-      const ikasProducts = await fetchAllProducts();
-      products = transformIkasProducts(ikasProducts);
+      const [ikasProducts, stockLocations] = await Promise.all([
+        fetchAllProducts(),
+        fetchStockLocations(),
+      ]);
+      products = transformIkasProducts(ikasProducts, stockLocations);
     } catch {
       // ikas bağlantısı yoksa demo veri kullan
       products = getDemoProducts();
@@ -184,24 +187,37 @@ function generateRuleBasedResponse(
     return `Merhaba! 👋 Olga Stok Asistanı'yım. Sorularınız:\n\n• "Kritik stoklar"\n• "Sipariş önerisi"\n• "Tüketim analizi"\n• Ürün adı ile sorgulama`;
   }
 
-  // Ürün arama
-  const found = products.find(
-    (p) =>
-      lower.includes(p.name.toLowerCase().split(" ")[0]) ||
-      lower.includes(p.sku.toLowerCase())
-  );
-  if (found) {
-    const status = getStockStatus(
-      found.currentStock,
-      found.minStock,
-      found.dailyUsage
-    );
-    const emoji =
-      status === "healthy" ? "🟢" : status === "warning" ? "🟡" : "🔴";
-    return `${emoji} **${found.name}** (${found.sku})\n\n• Stok: ${found.currentStock} ${found.unit}\n• Min: ${found.minStock}\n• Günlük: ${found.dailyUsage} ${found.unit}/gün\n• Tükenme: ${getDaysUntilOut(found.currentStock, found.dailyUsage)} gün\n• Fiyat: ${formatCurrency(found.price)}\n• Konum: ${found.location}`;
+  // Ürün arama - isim, SKU veya herhangi bir kelime ile eşleşme
+  const words = lower.replace(/[?.,!]/g, "").split(/\s+/).filter(w => w.length >= 2);
+  const matchingProducts = products.filter((p) => {
+    const pName = p.name.toLowerCase();
+    const pSku = p.sku.toLowerCase();
+    return words.some(w => pName.includes(w) || pSku.includes(w));
+  });
+
+  if (matchingProducts.length > 0) {
+    if (matchingProducts.length === 1) {
+      const found = matchingProducts[0];
+      const status = getStockStatus(found.currentStock, found.minStock, found.dailyUsage);
+      const emoji = status === "healthy" ? "🟢" : status === "warning" ? "🟡" : "🔴";
+      return `${emoji} **${found.name}** (${found.sku})\n\n• Stok: ${found.currentStock} ${found.unit}\n• Min: ${found.minStock}\n• Günlük: ${found.dailyUsage} ${found.unit}/gün\n• Tükenme: ${getDaysUntilOut(found.currentStock, found.dailyUsage)} gün\n• Fiyat: ${formatCurrency(found.price)}\n• Konum: ${found.location}`;
+    }
+    // Birden fazla eşleşme
+    const list = matchingProducts.slice(0, 15).map((p) => {
+      const status = getStockStatus(p.currentStock, p.minStock, p.dailyUsage);
+      const emoji = status === "healthy" ? "🟢" : status === "warning" ? "🟡" : "🔴";
+      return `${emoji} **${p.name}** (${p.sku}) — ${p.currentStock} ${p.unit} — ${p.location}`;
+    });
+    const total = matchingProducts.length;
+    return `📦 ${total} ürün bulundu:\n\n${list.join("\n")}${total > 15 ? `\n\n...ve ${total - 15} ürün daha.` : ""}`;
   }
 
-  return `Sorunuzu tam anlayamadım. Şunları deneyebilirsiniz:\n• "Kritik stoklar"\n• "Sipariş önerisi"\n• "Tüketim analizi"\n• Ürün adı ile sorgulama`;
+  // Kaç, stok, ne kadar gibi kelimelerle genel sorgu
+  if (lower.includes("kaç") || lower.includes("stok") || lower.includes("ne kadar")) {
+    return `Aradığınız ürünü bulamadım. Ürün adı veya SKU kodu ile tekrar deneyin.\n\nÖrnek: "Roma profil stok durumu" veya "GB022 kaç boy var?"`;
+  }
+
+  return `Sorunuzu tam anlayamadım. Şunları deneyebilirsiniz:\n• "Kritik stoklar"\n• "Sipariş önerisi"\n• "Tüketim analizi"\n• Ürün adı veya SKU kodu ile sorgulama (ör: "GB022 kaç boy?")`;
 }
 
 // ─── Demo Products ───────────────────────────────────────────────────
