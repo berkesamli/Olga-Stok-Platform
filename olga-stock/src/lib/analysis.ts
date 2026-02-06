@@ -179,10 +179,13 @@ export function transformIkasProducts(
   ikasProducts: any[],
   stockLocations?: any[]
 ): ProductStock[] {
+  // Lokasyon ID -> İsim haritası
   const locationMap = new Map<string, string>();
-  if (stockLocations) {
+  const allLocationIds: string[] = [];
+  if (stockLocations && stockLocations.length > 0) {
     for (const loc of stockLocations) {
-      locationMap.set(loc.id, loc.name);
+      locationMap.set(loc.id, loc.name || loc.address?.city || loc.id);
+      allLocationIds.push(loc.id);
     }
   }
 
@@ -194,19 +197,31 @@ export function transformIkasProducts(
     const baseName = p.name || "İsimsiz Ürün";
     const baseSku = variant?.sku || "-";
     const category = p.categories?.[0]?.name || p.brand?.name || "Genel";
-    const unit = p.baseUnit?.type === "METER" ? "metre" : "adet";
+    const unit = p.baseUnit?.type === "METER" ? "boy" : "adet";
     const sellPrice = price?.sellPrice ?? 0;
+    const buyPrice = price?.buyPrice ?? 0;
     const lastOrderDate = p.createdAt
       ? new Date(p.createdAt).toISOString().split("T")[0]
       : "-";
 
     // Tüm variant'lardan lokasyon bazlı stok topla
     const stockByLocation = new Map<string, number>();
+
+    // Bilinen tüm lokasyonları 0 ile başlat
+    for (const locId of allLocationIds) {
+      stockByLocation.set(locId, 0);
+    }
+
+    // Variant'lardaki gerçek stok değerlerini ekle
     for (const v of p.variants || []) {
       for (const s of v.stocks || []) {
-        if (s.stockLocationId && s.stockCount > 0) {
+        if (s.stockLocationId) {
           const current = stockByLocation.get(s.stockLocationId) || 0;
-          stockByLocation.set(s.stockLocationId, current + s.stockCount);
+          stockByLocation.set(s.stockLocationId, current + (s.stockCount || 0));
+          // Bilinmeyen lokasyonu da haritaya ekle
+          if (!locationMap.has(s.stockLocationId)) {
+            locationMap.set(s.stockLocationId, s.stockLocationId);
+          }
         }
       }
     }
@@ -231,7 +246,7 @@ export function transformIkasProducts(
         });
       });
     } else {
-      // Stok lokasyonu yoksa toplam stok ile tek satır
+      // Hiç lokasyon bilgisi yoksa toplam stok ile tek satır
       results.push({
         id: p.id,
         name: baseName,
