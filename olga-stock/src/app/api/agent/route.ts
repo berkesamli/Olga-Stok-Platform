@@ -7,6 +7,7 @@ import {
   getStockStatus,
   getDaysUntilOut,
   formatCurrency,
+  ProductStock,
 } from "@/lib/analysis";
 
 // ─── AI Agent Endpoint ───────────────────────────────────────────────
@@ -204,13 +205,13 @@ function generateRuleBasedResponse(
 }
 
 // ─── Demo Products ───────────────────────────────────────────────────
-function getDemoProducts() {
+function getDemoProducts(): ProductStock[] {
   return [
-    { id: "P001", name: "Roma Profil 3cm Altın", sku: "RP-3-ALTIN", category: "Profil", currentStock: 245, minStock: 50, unit: "boy", dailyUsage: 8.2, price: 42.5, location: "Ankara", trend: "stable", lastOrderDate: "2026-01-28" },
-    { id: "P002", name: "Roma Profil 3cm Gümüş", sku: "RP-3-GUMUS", category: "Profil", currentStock: 18, minStock: 50, unit: "boy", dailyUsage: 6.5, price: 42.5, location: "Ankara", trend: "falling", lastOrderDate: "2026-01-15" },
-    { id: "P003", name: "Düz Profil 2cm Siyah", sku: "DP-2-SIYAH", category: "Profil", currentStock: 320, minStock: 40, unit: "boy", dailyUsage: 12.1, price: 28, location: "Ankara", trend: "rising", lastOrderDate: "2026-02-01" },
-    { id: "P004", name: "Paspartou Kartonu 70x100 Beyaz", sku: "PK-70100-B", category: "Karton", currentStock: 85, minStock: 100, unit: "adet", dailyUsage: 5.3, price: 18, location: "Ankara", trend: "falling", lastOrderDate: "2026-01-20" },
-    { id: "P007", name: "Antirefleks Cam 2mm 100x70", sku: "AC-2-10070", category: "Cam", currentStock: 8, minStock: 20, unit: "adet", dailyUsage: 1.8, price: 120, location: "Ankara", trend: "falling", lastOrderDate: "2026-01-10" },
-    { id: "P010", name: "Akrilik Levha 3mm Şeffaf", sku: "AL-3-SEFFAF", category: "Akrilik", currentStock: 5, minStock: 15, unit: "adet", dailyUsage: 1.2, price: 280, location: "Ankara", trend: "falling", lastOrderDate: "2025-12-20" },
+    { id: "P001", name: "Roma Profil 3cm Altın", sku: "RP-3-ALTIN", category: "Profil", currentStock: 245, minStock: 50, unit: "boy", dailyUsage: 8.2, price: 42.5, location: "Ankara", trend: "stable" as const, lastOrderDate: "2026-01-28" },
+    { id: "P002", name: "Roma Profil 3cm Gümüş", sku: "RP-3-GUMUS", category: "Profil", currentStock: 18, minStock: 50, unit: "boy", dailyUsage: 6.5, price: 42.5, location: "Ankara", trend: "falling" as const, lastOrderDate: "2026-01-15" },
+    { id: "P003", name: "Düz Profil 2cm Siyah", sku: "DP-2-SIYAH", category: "Profil", currentStock: 320, minStock: 40, unit: "boy", dailyUsage: 12.1, price: 28, location: "Ankara", trend: "rising" as const, lastOrderDate: "2026-02-01" },
+    { id: "P004", name: "Paspartou Kartonu 70x100 Beyaz", sku: "PK-70100-B", category: "Karton", currentStock: 85, minStock: 100, unit: "adet", dailyUsage: 5.3, price: 18, location: "Ankara", trend: "falling" as const, lastOrderDate: "2026-01-20" },
+    { id: "P007", name: "Antirefleks Cam 2mm 100x70", sku: "AC-2-10070", category: "Cam", currentStock: 8, minStock: 20, unit: "adet", dailyUsage: 1.8, price: 120, location: "Ankara", trend: "falling" as const, lastOrderDate: "2026-01-10" },
+    { id: "P010", name: "Akrilik Levha 3mm Şeffaf", sku: "AL-3-SEFFAF", category: "Akrilik", currentStock: 5, minStock: 15, unit: "adet", dailyUsage: 1.2, price: 280, location: "Ankara", trend: "falling" as const, lastOrderDate: "2025-12-20" },
   ];
 }
