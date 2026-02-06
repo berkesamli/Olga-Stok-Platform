@@ -138,17 +138,16 @@ export const QUERIES = {
             isMain
             order
           }
-          stockCount
-          variantValues {
-            variantTypeId
-            variantValueId
+          stocks {
+            stockCount
+            stockLocationId
           }
+          variantValueIds
           weight
           isActive
         }
         baseUnit {
           type
-          value
         }
         createdAt
         weight
