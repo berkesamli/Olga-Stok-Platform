@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: true,
-  },
   env: {
     IKAS_CLIENT_ID: process.env.IKAS_CLIENT_ID,
     IKAS_CLIENT_SECRET: process.env.IKAS_CLIENT_SECRET,
